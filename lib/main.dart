@@ -1,9 +1,18 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.portraitUp,
+  ]).then((_) {
+    runApp(MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -74,30 +83,66 @@ class _MyHomePageState extends State<MyHomePage> {
       default:
         throw UnimplementedError('aucun composant pour $selectedIndex');
     }
-    return Scaffold(
-      body: Container(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        child: page,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Accueil',
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 450) {
+        return Scaffold(
+          body: Container(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            child: page,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Favoris',
+          bottomNavigationBar: BottomNavigationBar(
+            items: [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Accueil',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.favorite),
+                label: 'Favoris',
+              ),
+            ],
+            currentIndex: selectedIndex,
+            onTap: (value) {
+              setState(() {
+                selectedIndex = value;
+              });
+            },
           ),
-        ],
-        currentIndex: selectedIndex,
-        onTap: (value) {
-          setState(() {
-            selectedIndex = value;
-          });
-        },
-      ),
-    );
+        );
+      } else {
+        return Theme(
+          data: Theme.of(context), // Utiliser le thème actuel
+          child: Row(
+            children: [
+              NavigationRail(
+                destinations: [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home),
+                    label: Text('Accueil'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.favorite),
+                    label: Text('Favoris'),
+                  ),
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (int index) {
+                  setState(() {
+                    selectedIndex = index;
+                  });
+                },
+              ),
+              Expanded(
+                child: Container(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: page,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    });
   }
 }
 
@@ -105,10 +150,14 @@ class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
+    var theme = Theme.of(context);
     return Center(
       child: ListView(
         children: [
-          Text('Votre liste de paires fav :'),
+          Text(
+            'Votre liste de paires fav :',
+            style: theme.textTheme.bodyLarge,
+          ),
           for (var wordPair in appState.favorites)
             CardPair(
               wordPair: wordPair,
@@ -135,9 +184,6 @@ class CardPair extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
-    var style = theme.textTheme.bodyMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
     return Card(
       color: theme.colorScheme.primary,
       child: Row(
@@ -147,7 +193,7 @@ class CardPair extends StatelessWidget {
               padding: const EdgeInsets.all(20.0),
               child: Text(
                 wordPair.asLowerCase,
-                style: style,
+                style: theme.textTheme.bodyMedium,
                 semanticsLabel: wordPair.asPascalCase,
               ),
             ),
